@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>魔塔游戏</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        #game-container {
+            position: relative;
+        }
+        canvas {
+            border: 2px solid #333;
+            background-color: #fff;
+        }
+        #ui {
+            margin-top: 20px;
+            width: 400px;
+            padding: 10px;
+            border: 2px solid #333;
+            background-color: #fff;
+        }
+        #status {
+            margin-bottom: 10px;
+        }
+        #controls {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 20px;
+        }
+        #skill-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .skill-button, .skill-passive {
+            padding: 8px 12px;
+            border: 2px solid #333;
+            border-radius: 4px;
+            cursor: pointer;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 80px;
+        }
+        .skill-button {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .skill-passive {
+            background-color: #2196F3;
+            color: white;
+        }
+        .skill-tooltip {
+            visibility: hidden;
+            width: 200px;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .skill-button:hover .skill-tooltip,
+        .skill-passive:hover .skill-tooltip {
+            visibility: visible;
+            opacity: 1;
+        }
+        .skill-indicator {
+            position: absolute;
+            top: -5px;
+            left: -5px;
+            width: 10px;
+            height: 10px;
+            background-color: yellow;
+            border-radius: 50%;
+            border: 1px solid #333;
+        }
+        .skill-cooldown {
+            background-color: rgba(0, 0, 0, 0.5);
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        button {
+            width: 50px;
+            height: 50px;
+            margin: 2px;
+            font-size: 18px;
+            background-color: #ddd;
+            border: 2px solid #333;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #bbb;
+        }
+        #direction-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            grid-template-rows: 1fr 1fr 1fr;
+            gap: 2px;
+            width: 160px;
+            height: 160px;
+        }
+        #up {
+            grid-column: 2;
+            grid-row: 1;
+        }
+        #left {
+            grid-column: 1;
+            grid-row: 2;
+        }
+        #down {
+            grid-column: 2;
+            grid-row: 3;
+        }
+        #right {
+            grid-column: 3;
+            grid-row: 2;
+        }
+    </style>
+</head>
+<body>
+    <h1>魔塔游戏</h1>
+    <div id="game-container">
+        <canvas id="gameCanvas" width="400" height="400"></canvas>
+    </div>
+    <div id="ui">
+        <div id="status">
+            等级: <span id="level">1</span> | 生命: <span id="hp">100</span>/<span id="maxHp">100</span> | 攻击: <span id="attack">10</span> | 防御: <span id="defense">5</span> | 金币: <span id="gold">0</span> | 钥匙: <span id="keys">0</span> | 楼层: <span id="floor">1</span>/<span id="maxFloor">10</span>
+        </div>
+        <div id="message"></div>
+    </div>
+    <div id="controls">
+        <div id="skill-container">
+            <div id="skill1" class="skill-button">
+                <div class="skill-indicator"></div>
+                双倍伤害
+                <div id="skill1-tooltip" class="skill-tooltip">对面前单位造成2倍攻击伤害（冷却5回合）</div>
+            </div>
+            <div id="skill2" class="skill-passive">
+                <div class="skill-indicator"></div>
+                生命恢复
+                <div id="skill2-tooltip" class="skill-tooltip">移动时有概率回复生命，概率和数值随等级提升</div>
+            </div>
+        </div>
+        <div id="direction-buttons">
+            <button id="up">↑</button>
+            <button id="left">←</button>
+            <button id="down">↓</button>
+            <button id="right">→</button>
+        </div>
+    </div>
+
+    <script src="player.js"></script>
+    <script src="enemy.js"></script>
+    <script src="item.js"></script>
+    <script src="map.js"></script>
+    <script src="game.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>
