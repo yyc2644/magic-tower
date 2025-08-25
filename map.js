@@ -10,7 +10,7 @@ class Map {
     }
 
     generate() {
-        // 初始化地图为墙
+        // 1. 初始化地图为墙
         for (let y = 0; y < this.height; y++) {
             this.tiles[y] = [];
             for (let x = 0; x < this.width; x++) {
@@ -18,25 +18,18 @@ class Map {
             }
         }
 
-        // 生成房间和走廊（简化版）
-        for (let y = 1; y < this.height - 1; y++) {
-            for (let x = 1; x < this.width - 1; x++) {
-                // 70%概率生成地板
-                if (Math.random() < 0.7) {
-                    this.tiles[y][x] = { type: 'floor', color: '#CCC' };
-                }
-            }
-        }
+        // 2. 生成连通路径 (BFS算法确保连通性)
+        this.generateConnectedPath();
 
-        // 确保出生点是地板
-        this.tiles[1][1] = { type: 'floor', color: '#CCC' };
+        // 3. 扩展路径生成房间
+        this.expandRooms();
 
-        // 放置楼梯
+        // 4. 放置楼梯
         const stairX = this.width - 2;
         const stairY = this.height - 2;
         this.tiles[stairY][stairX] = { type: 'stair', color: '#AAA' };
 
-        // 根据楼层生成敌人
+        // 5. 根据楼层生成敌人
         const enemyCount = 3 + Math.floor(this.floor * 1.5);
         for (let i = 0; i < enemyCount; i++) {
             let x, y;
@@ -49,12 +42,14 @@ class Map {
             const enemyAttack = 5 + this.floor * 3;
             const enemyDefense = 2 + this.floor * 1;
             const enemyExp = 20 + this.floor * 10;
+            const enemyNames = ['骷髅', '僵尸', '幽灵', '巫师', '骑士', '恶魔', '龙'];
+            const enemyName = enemyNames[Math.min(Math.floor(this.floor / 2), enemyNames.length - 1)] + (i + 1);
 
-            this.enemies.push(new Enemy(x, y, `敌人${i+1}`, enemyHp, enemyAttack, enemyDefense, enemyExp));
+            this.enemies.push(new Enemy(x, y, enemyName, enemyHp, enemyAttack, enemyDefense, enemyExp));
         }
 
-        // 生成物品
-        const itemCount = 2 + Math.floor(Math.random() * 3);
+        // 6. 生成物品
+        const itemCount = 3 + Math.floor(Math.random() * 3);
         for (let i = 0; i < itemCount; i++) {
             let x, y;
             do {
@@ -79,6 +74,110 @@ class Map {
                 case 4:
                     this.items.push(createGold(x, y));
                     break;
+            }
+        }
+    }
+
+    // 生成连通路径确保从起点到楼梯可达
+    generateConnectedPath() {
+        const startX = 1;
+        const startY = 1;
+        const endX = this.width - 2;
+        const endY = this.height - 2;
+
+        // 使用BFS生成路径
+        const queue = [{ x: startX, y: startY }];
+        const visited = new Set();
+        visited.add(`${startX},${startY}`);
+        this.tiles[startY][startX] = { type: 'floor', color: '#CCC' };
+
+        const directions = [
+            { dx: 0, dy: -1 }, // 上
+            { dx: 0, dy: 1 },  // 下
+            { dx: -1, dy: 0 }, // 左
+            { dx: 1, dy: 0 }   // 右
+        ];
+
+        while (queue.length > 0) {
+            const { x, y } = queue.shift();
+
+            // 如果到达终点，停止BFS
+            if (x === endX && y === endY) {
+                break;
+            }
+
+            // 随机打乱方向，增加路径的随机性
+            const shuffledDirections = [...directions].sort(() => Math.random() - 0.5);
+
+            for (const { dx, dy } of shuffledDirections) {
+                const newX = x + dx;
+                const newY = y + dy;
+
+                // 确保在边界内，并且没有访问过
+                if (newX > 0 && newX < this.width - 1 && newY > 0 && newY < this.height - 1) {
+                    const key = `${newX},${newY}`;
+                    if (!visited.has(key)) {
+                        visited.add(key);
+                        this.tiles[newY][newX] = { type: 'floor', color: '#CCC' };
+                        queue.push({ x: newX, y: newY });
+                    }
+                }
+            }
+        }
+
+        // 确保终点是地板
+        this.tiles[endY][endX] = { type: 'floor', color: '#CCC' };
+    }
+
+    // 扩展路径生成房间
+    expandRooms() {
+        // 对每个地板格子，有概率向四周扩展
+        for (let y = 1; y < this.height - 1; y++) {
+            for (let x = 1; x < this.width - 1; x++) {
+                if (this.tiles[y][x].type === 'floor') {
+                    // 50%概率向四个方向扩展
+                    const directions = [
+                        { dx: 0, dy: -1 },
+                        { dx: 0, dy: 1 },
+                        { dx: -1, dy: 0 },
+                        { dx: 1, dy: 0 }
+                    ];
+
+                    for (const { dx, dy } of directions) {
+                        if (Math.random() < 0.5) {
+                            const newX = x + dx;
+                            const newY = y + dy;
+                            if (newX > 0 && newX < this.width - 1 && newY > 0 && newY < this.height - 1) {
+                                this.tiles[newY][newX] = { type: 'floor', color: '#CCC' };
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 二次扩展，增加房间大小
+        for (let y = 1; y < this.height - 1; y++) {
+            for (let x = 1; x < this.width - 1; x++) {
+                if (this.tiles[y][x].type === 'floor') {
+                    // 30%概率向斜方向扩展
+                    const directions = [
+                        { dx: -1, dy: -1 },
+                        { dx: -1, dy: 1 },
+                        { dx: 1, dy: -1 },
+                        { dx: 1, dy: 1 }
+                    ];
+
+                    for (const { dx, dy } of directions) {
+                        if (Math.random() < 0.3) {
+                            const newX = x + dx;
+                            const newY = y + dy;
+                            if (newX > 0 && newX < this.width - 1 && newY > 0 && newY < this.height - 1) {
+                                this.tiles[newY][newX] = { type: 'floor', color: '#CCC' };
+                            }
+                        }
+                    }
+                }
             }
         }
     }
