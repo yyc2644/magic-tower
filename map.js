@@ -1,11 +1,13 @@
 class Map {
-    constructor(floor) {
-        this.width = 10;
-        this.height = 10;
+    constructor(floor, isSecondPlaythrough = false) {
+        // 根据是否二次进入设置不同的地图大小
+        this.width = isSecondPlaythrough ? 16 : 10;
+        this.height = isSecondPlaythrough ? 16 : 10;
         this.tiles = [];
         this.enemies = [];
         this.items = [];
         this.floor = floor;
+        this.isSecondPlaythrough = isSecondPlaythrough;
         this.generate();
     }
 
@@ -29,11 +31,18 @@ class Map {
         const stairY = this.height - 2;
         this.tiles[stairY][stairX] = { type: 'stair', color: '#AAA' };
 
-        // 5. 根据楼层生成敌人 - 修改怪物数量限制为最多4个
-        const baseEnemies = 2; // 基础怪物数量
-        const additionalEnemies = Math.min(Math.floor(this.floor / 2), 2); // 每2层增加1个，最多增加2个
-        const enemyCount = baseEnemies + additionalEnemies; // 每层最多4个怪物
-        
+        // 5. 根据是否二次进入和楼层生成敌人
+        let enemyCount;
+        if (this.isSecondPlaythrough) {
+            // 二次进入时，怪物数量随机在3-6之间
+            enemyCount = 3 + Math.floor(Math.random() * 4);
+        } else {
+            // 首次进入时，保持原有逻辑
+            const baseEnemies = 2;
+            const additionalEnemies = Math.min(Math.floor(this.floor / 2), 2);
+            enemyCount = baseEnemies + additionalEnemies;
+        }
+
         for (let i = 0; i < enemyCount; i++) {
             let x, y;
             do {
@@ -41,18 +50,35 @@ class Map {
                 y = Math.floor(Math.random() * (this.height - 2)) + 1;
             } while (!this.isWalkable(x, y) || (x === 1 && y === 1) || (x === stairX && y === stairY));
 
-            const enemyHp = 30 + this.floor * 15;
-            const enemyAttack = 5 + this.floor * 3;
-            const enemyDefense = 2 + this.floor * 1;
-            const enemyExp = 20 + this.floor * 10;
+            // 二次进入时，怪物属性增强
+            const enemyHp = this.isSecondPlaythrough ? 
+                50 + this.floor * 20 : 
+                30 + this.floor * 15;
+            const enemyAttack = this.isSecondPlaythrough ? 
+                8 + this.floor * 4 : 
+                5 + this.floor * 3;
+            const enemyDefense = this.isSecondPlaythrough ? 
+                4 + this.floor * 2 : 
+                2 + this.floor * 1;
+            const enemyExp = this.isSecondPlaythrough ? 
+                30 + this.floor * 15 : 
+                20 + this.floor * 10;
+
             const enemyNames = ['骷髅', '僵尸', '幽灵', '巫师', '骑士', '恶魔', '龙'];
-            const enemyName = enemyNames[Math.min(Math.floor(this.floor / 2), enemyNames.length - 1)] + (i + 1);
+            const nameIndex = this.isSecondPlaythrough ? 
+                Math.min(Math.floor(this.floor / 1.5), enemyNames.length - 1) : 
+                Math.min(Math.floor(this.floor / 2), enemyNames.length - 1);
+            const enemyName = enemyNames[nameIndex] + (i + 1);
 
             this.enemies.push(new Enemy(x, y, enemyName, enemyHp, enemyAttack, enemyDefense, enemyExp));
         }
 
         // 6. 生成物品
-        const itemCount = 3 + Math.floor(Math.random() * 3);
+        // 二次进入时，物品数量也适当增加
+        const itemCount = this.isSecondPlaythrough ? 
+            5 + Math.floor(Math.random() * 4) : 
+            3 + Math.floor(Math.random() * 3);
+
         for (let i = 0; i < itemCount; i++) {
             let x, y;
             do {

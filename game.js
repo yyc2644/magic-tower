@@ -10,6 +10,9 @@ class Game {
         this.isGameOver = false;
         this.message = '';
         this.messageTimer = 0;
+        this.victoryScreen = document.getElementById('victory-screen');
+        this.restartBtn = document.getElementById('restart-game');
+        this.isSecondPlaythrough = false; // 标记是否为二次进入
     }
 
     init() {
@@ -22,7 +25,11 @@ class Game {
     }
 
     generateMap() {
-        this.map = new Map(this.floor);
+        // 传递二次进入标志给Map构造函数
+        this.map = new Map(this.floor, this.isSecondPlaythrough);
+        // 根据地图大小调整canvas大小
+        this.canvas.width = this.map.width * this.tileSize;
+        this.canvas.height = this.map.height * this.tileSize;
         // 确保玩家出生点不被阻挡
         this.player.x = 1;
         this.player.y = 1;
@@ -58,6 +65,9 @@ class Game {
                     break;
             }
         });
+
+        // 添加重新开始游戏的事件监听
+        this.restartBtn.addEventListener('click', () => this.restartGame());
     }
 
     movePlayer(direction) {
@@ -223,10 +233,45 @@ class Game {
     gameOver(isVictory) {
         this.isGameOver = true;
         if (isVictory) {
-            this.showMessage("恭喜你通关了！");
+            // 显示通关提示界面
+            this.victoryScreen.style.display = 'flex';
+            // 添加动画效果
+            setTimeout(() => {
+                const messageEl = this.victoryScreen.querySelector('.victory-message');
+                messageEl.style.transform = 'scale(1.2)';
+                messageEl.style.transition = 'transform 0.3s ease-in-out';
+                setTimeout(() => {
+                    messageEl.style.transform = 'scale(1)';
+                }, 300);
+            }, 500);
+            // 通关后设置二次进入标志
+            this.isSecondPlaythrough = true;
         } else {
             this.showMessage("游戏结束，你失败了！");
+            // 为失败也添加更醒目的提示
+            const messageEl = document.getElementById('message');
+            messageEl.style.color = 'red';
+            messageEl.style.fontSize = '18px';
+            messageEl.style.fontWeight = 'bold';
+            // 3秒后恢复正常样式
+            setTimeout(() => {
+                messageEl.style.color = '#333';
+                messageEl.style.fontSize = '16px';
+                messageEl.style.fontWeight = 'normal';
+            }, 3000);
         }
+    }
+
+    // 添加重新开始游戏的方法
+    restartGame() {
+        this.victoryScreen.style.display = 'none';
+        this.floor = 1;
+        this.isGameOver = false;
+        this.player = new Player();
+        // 保留二次进入标志
+        this.generateMap();
+        this.updateUI();
+        this.render();
     }
 
     showMessage(text) {
