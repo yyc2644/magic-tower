@@ -355,4 +355,17 @@ class Game {
         }
         requestAnimationFrame(() => this.gameLoop());
     }
+
+    update() {
+        // 更新怪物
+        this.map.enemies.forEach(enemy => {
+            enemy.move(this.map, this.player);
+            
+            // 检查是否与玩家相邻
+            if (Math.abs(enemy.x - this.player.x) + Math.abs(enemy.y - this.player.y) === 1) {
+                const damage = enemy.attack(this.player);
+                this.log(`敌人 ${enemy.name} 对你造成了 ${damage} 点伤害!`);
+            }
+        });
+    }
 }

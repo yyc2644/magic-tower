@@ -29,8 +29,11 @@ class Map {
         const stairY = this.height - 2;
         this.tiles[stairY][stairX] = { type: 'stair', color: '#AAA' };
 
-        // 5. 根据楼层生成敌人
-        const enemyCount = 3 + Math.floor(this.floor * 1.5);
+        // 5. 根据楼层生成敌人 - 修改怪物数量限制为最多4个
+        const baseEnemies = 2; // 基础怪物数量
+        const additionalEnemies = Math.min(Math.floor(this.floor / 2), 2); // 每2层增加1个，最多增加2个
+        const enemyCount = baseEnemies + additionalEnemies; // 每层最多4个怪物
+        
         for (let i = 0; i < enemyCount; i++) {
             let x, y;
             do {
