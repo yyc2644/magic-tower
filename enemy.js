@@ -1,5 +1,5 @@
 class Enemy {
-    constructor(x, y, name, hp, attack, defense, exp, color) {
+    constructor(x, y, name, hp, attack, defense, exp, isBoss = false) {
         this.x = x;
         this.y = y;
         this.name = name;
@@ -8,9 +8,13 @@ class Enemy {
         this.attack = attack;
         this.defense = defense;
         this.exp = exp;
-        this.color = color || '#8B0000';
+        this.isBoss = isBoss; // 添加是否是魔王的标记
+        // 魔王有特殊颜色
+        this.color = isBoss ? '#900' : '#A00';
+        // 添加移动冷却和方向
         this.moveCooldown = 0;
-        this.moveInterval = 30; // 每30帧移动一次
+        this.moveCooldownMax = 10; // 每10帧移动一次
+        this.direction = 'down';
     }
     
     // 怪物移动逻辑

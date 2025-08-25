@@ -39,3 +39,11 @@ function createGold(x, y) {
         player.gold += 20;
     }, 'G', '#F1C40F');
 }
+
+function createPrincess(x, y) {
+    return new Item(x, y, '公主', (player) => {
+        // 公主的效果是完成游戏
+        player.hasRescuedPrincess = true;
+        return '救出了公主！';
+    }, '♀', '#FFB6C1');
+}

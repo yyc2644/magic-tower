@@ -13,6 +13,7 @@ class Game {
         this.victoryScreen = document.getElementById('victory-screen');
         this.restartBtn = document.getElementById('restart-game');
         this.isSecondPlaythrough = false; // 标记是否为二次进入
+        this.hasDefeatedBoss = false; // 添加是否击败魔王的标记
     }
 
     init() {
@@ -25,11 +26,14 @@ class Game {
     }
 
     generateMap() {
-        // 传递二次进入标志给Map构造函数
+        // 传递二次进入标志给 Map 构造函数
         this.map = new Map(this.floor, this.isSecondPlaythrough);
-        // 根据地图大小调整canvas大小
+        // 根据地图大小调整 canvas 大小
         this.canvas.width = this.map.width * this.tileSize;
         this.canvas.height = this.map.height * this.tileSize;
+        // 添加以下两行，确保 canvas 显示大小与实际大小一致
+        this.canvas.style.width = `${this.canvas.width}px`;
+        this.canvas.style.height = `${this.canvas.height}px`;
         // 确保玩家出生点不被阻挡
         this.player.x = 1;
         this.player.y = 1;
@@ -195,6 +199,19 @@ class Game {
         if (enemy.hp <= 0) {
             this.showMessage(`击败了${enemy.name}，获得${enemy.exp}点经验`);
             this.player.gainExp(enemy.exp);
+
+            // 如果击败的是魔王
+            if (enemy.isBoss) {
+                this.hasDefeatedBoss = true;
+                this.showMessage('恭喜你击败了魔王！');
+                // 在魔王位置生成公主
+                this.map.generatePrincess();
+                // 移除楼梯，防止提前离开
+                const stairX = this.map.width - 2;
+                const stairY = this.map.height - 2;
+                this.map.tiles[stairY][stairX] = { type: 'wall', color: '#888' };
+            }
+
             this.map.enemies.splice(enemyIndex, 1);
         } else {
             // 敌人反击
@@ -215,15 +232,27 @@ class Game {
 
     pickupItem(itemIndex) {
         const item = this.map.items[itemIndex];
-        item.effect(this.player);
-        this.showMessage(`获得了${item.name}`);
+        const effectMessage = item.effect(this.player);
+        this.showMessage(`获得了${item.name}${effectMessage ? '，' + effectMessage : ''}`);
+
+        // 如果拾取的是公主
+        if (item.name === '公主') {
+            this.gameOver(true);
+        }
+
         this.map.items.splice(itemIndex, 1);
     }
 
     changeFloor() {
         this.floor++;
         if (this.floor > this.maxFloor) {
-            this.gameOver(true);
+            // 只有击败魔王并救出公主才能通关
+            if (this.hasDefeatedBoss && this.player.hasRescuedPrincess) {
+                this.gameOver(true);
+            } else {
+                this.showMessage('你必须击败魔王并救出公主才能通关！');
+                this.floor--;
+            }
             return;
         }
         this.showMessage(`进入第${this.floor}层`);
@@ -233,8 +262,15 @@ class Game {
     gameOver(isVictory) {
         this.isGameOver = true;
         if (isVictory) {
+            // 根据是否救出公主显示不同的通关信息
+            const victoryMessage = this.player.hasRescuedPrincess ? 
+                '恭喜你击败了魔王并救出了公主！游戏通关！' : 
+                '恭喜你到达了塔顶！但请击败魔王并救出公主以完成游戏。';
+
             // 显示通关提示界面
             this.victoryScreen.style.display = 'flex';
+            this.victoryScreen.querySelector('.victory-message').textContent = victoryMessage;
+
             // 添加动画效果
             setTimeout(() => {
                 const messageEl = this.victoryScreen.querySelector('.victory-message');
@@ -244,6 +280,7 @@ class Game {
                     messageEl.style.transform = 'scale(1)';
                 }, 300);
             }, 500);
+
             // 通关后设置二次进入标志
             this.isSecondPlaythrough = true;
         } else {

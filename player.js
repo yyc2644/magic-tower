@@ -2,28 +2,30 @@ class Player {
     constructor() {
         this.x = 1;
         this.y = 1;
+        this.hp = 100;
+        this.maxHp = 100;
+        this.attack = 10;
+        this.defense = 5;
         this.level = 1;
         this.exp = 0;
         this.expToNextLevel = 100;
-        this.maxHp = 100;
-        this.hp = 100;
-        this.attack = 10;
-        this.defense = 5;
         this.gold = 0;
         this.keys = 0;
-        this.direction = 'up'; // 默认朝向
+        this.direction = 'up';
+        this.hasRescuedPrincess = false; // 添加是否救出公主的标记
+
+        // 技能系统
         this.skills = {
             skill1: {
-                name: "双倍伤害",
-                description: "对面前单位造成2倍攻击伤害",
+                name: '双倍伤害',
+                description: '对前方敌人造成双倍伤害',
                 cooldown: 5,
-                currentCooldown: 0,
-                isActive: true
+                currentCooldown: 0
             },
-            skill2: {
-                name: "生命恢复",
-                description: "移动时有概率回复生命，概率和数值与玩家等级挂钩",
-                isActive: true
+            passive1: {
+                name: '生命恢复',
+                description: '移动时有10%几率恢复5%的最大生命值',
+                active: true
             }
         };
     }
