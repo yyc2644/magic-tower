@@ -2,6 +2,7 @@ class Game {
     constructor() {
         this.canvas = document.getElementById('gameCanvas');
         this.ctx = this.canvas.getContext('2d');
+        // 基于屏幕宽度动态设定tileSize（在init里再精调）
         this.tileSize = 40;
         this.map = null;
         this.player = null;
@@ -21,24 +22,43 @@ class Game {
     init() {
         this.player = new Player();
         this.player.showSkillTooltip(); // 显示首次启动技能提示
+        this.updateResponsiveTileSize();
         this.generateMap();
         this.updateUI();
         this.bindEvents();
+        // 监听窗口尺寸变化，做自适应
+        window.addEventListener('resize', () => {
+            this.updateResponsiveTileSize();
+            this.resizeCanvasToMap();
+            this.render();
+        });
         this.gameLoop();
     }
 
     generateMap() {
         // 传递二次进入标志给 Map 构造函数
         this.map = new Map(this.floor, this.isSecondPlaythrough);
-        // 根据地图大小调整 canvas 大小
-        this.canvas.width = this.map.width * this.tileSize;
-        this.canvas.height = this.map.height * this.tileSize;
-        // 添加以下两行，确保 canvas 显示大小与实际大小一致
-        this.canvas.style.width = `${this.canvas.width}px`;
-        this.canvas.style.height = `${this.canvas.height}px`;
+        this.resizeCanvasToMap();
         // 确保玩家出生点不被阻挡
         this.player.x = 1;
         this.player.y = 1;
+    }
+
+    // 根据屏幕宽度动态设置tileSize，确保在手机端也能完整显示
+    updateResponsiveTileSize() {
+        const maxCanvasWidth = Math.min(window.innerWidth - 24, 800); // 留出边距
+        // 预估地图宽度，以初始或当前地图的宽度为准
+        const mapWidth = this.map ? this.map.width : 10;
+        const size = Math.floor(maxCanvasWidth / mapWidth);
+        // 约束tileSize范围
+        this.tileSize = Math.max(24, Math.min(48, size));
+    }
+
+    resizeCanvasToMap() {
+        this.canvas.width = this.map.width * this.tileSize;
+        this.canvas.height = this.map.height * this.tileSize;
+        this.canvas.style.width = `${this.canvas.width}px`;
+        this.canvas.style.height = `${this.canvas.height}px`;
     }
 
     bindEvents() {

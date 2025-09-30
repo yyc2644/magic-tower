@@ -15,13 +15,15 @@
         #gameContainer {
             display: flex;
             gap: 20px;
+            align-items: flex-start;
         }
         #gameCanvas {
             border: 2px solid #333;
             background-color: #fff;
-            /* 添加以下两行，确保 canvas 按实际像素显示 */
-            width: auto;
+            /* 让画布在容器内自适应宽度 */
+            width: 100%;
             height: auto;
+            max-width: 100%;
         }
         #ui {
             width: 200px;
@@ -138,6 +140,47 @@
         .princess {
             color: #FFB6C1;
             font-weight: bold;
+        }
+        /* 移动端适配 */
+        @media (max-width: 768px) {
+            body {
+                padding: 8px;
+            }
+            #gameContainer {
+                flex-direction: column;
+                align-items: center;
+                gap: 12px;
+                width: 100%;
+            }
+            #ui {
+                width: 100%;
+                max-width: 500px;
+            }
+            #gameCanvas {
+                width: 100vw;
+                height: auto;
+            }
+            .direction-controls {
+                grid-template-columns: 64px 64px 64px;
+                grid-template-rows: 64px 64px 64px;
+                gap: 8px;
+            }
+            .direction-btn {
+                width: 64px;
+                height: 64px;
+                font-size: 22px;
+            }
+            .skill-btn {
+                width: 100%;
+                height: 48px;
+                font-size: 18px;
+            }
+            .victory-message {
+                font-size: 36px;
+            }
+            .victory-submessage {
+                font-size: 18px;
+            }
         }
     </style>
 </head>
