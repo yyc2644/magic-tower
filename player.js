@@ -19,7 +19,7 @@ class Player {
             skill1: {
                 name: '双倍伤害',
                 description: '对前方敌人造成双倍伤害',
-                cooldown: 5,
+                cooldown: 10,
                 currentCooldown: 0
             },
             passive1: {
@@ -48,10 +48,11 @@ class Player {
         console.log(`升级了！当前等级：${this.level}`);
     }
 
-    takeDamage(damage) {
-        const actualDamage = Math.max(1, damage - this.defense);
-        this.hp = Math.max(0, this.hp - actualDamage);
-        return actualDamage;
+    // 现在takeDamage期望接收的是“已计算后的最终伤害”，不再在内部扣除防御
+    takeDamage(finalDamage) {
+        const damageToApply = Math.max(1, Math.floor(finalDamage));
+        this.hp = Math.max(0, this.hp - damageToApply);
+        return damageToApply;
     }
 
     useSkill(skillId) {

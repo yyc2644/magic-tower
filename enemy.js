@@ -22,7 +22,7 @@ class Enemy {
         this.moveCooldown--;
         if (this.moveCooldown > 0) return false;
         
-        this.moveCooldown = this.moveInterval;
+        this.moveCooldown = this.moveCooldownMax;
         
         // 简单AI：向玩家方向移动
         const dx = Math.sign(player.x - this.x);
@@ -39,7 +39,7 @@ class Enemy {
         
         if (dy !== 0) {
             const newY = this.y + dy;
-            if (map.isWalkable(newY, this.x) && !map.hasEnemy(this.x, newY)) {
+            if (map.isWalkable(this.x, newY) && !map.hasEnemy(this.x, newY)) {
                 this.y = newY;
                 return true;
             }

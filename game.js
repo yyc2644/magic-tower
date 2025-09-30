@@ -14,6 +14,8 @@ class Game {
         this.restartBtn = document.getElementById('restart-game');
         this.isSecondPlaythrough = false; // 标记是否为二次进入
         this.hasDefeatedBoss = false; // 添加是否击败魔王的标记
+        // 特效：伤害飘字与受击闪烁
+        this.effects = []; // {x,y,text,color,alpha,vy,life}
     }
 
     init() {
@@ -122,12 +124,16 @@ class Game {
                     const healAmount = this.player.tryPassiveHeal();
                     if (healAmount > 0) {
                         this.showMessage(`被动技能触发：回复${healAmount}点生命`);
+                        this.addFloater(this.player.x, this.player.y, `+${healAmount}`, '#3CCB6C');
                     }
                 }
 
                 // 减少技能冷却
                 this.player.reduceCooldowns();
                 this.updateSkillUI();
+
+                // 敌人回合：玩家移动或拾取后，敌人各移动一次，并尝试相邻攻击
+                this.enemyTurn();
             }
 
             this.updateUI();
@@ -144,13 +150,17 @@ class Game {
                 if (frontEnemy) {
                     // 技能1效果：双倍伤害
                     const damage = this.player.attack * 2 - frontEnemy.defense;
-                    frontEnemy.hp -= damage > 0 ? damage : 1;
-                    this.showMessage(`使用双倍伤害技能，对${frontEnemy.name}造成${damage > 0 ? damage : 1}点伤害`);
+                    const final = damage > 0 ? damage : 1;
+                    frontEnemy.hp -= final;
+                    this.showMessage(`使用双倍伤害技能，对${frontEnemy.name}造成${final}点伤害`);
+                    this.addFloater(frontEnemy.x, frontEnemy.y, `-${final}`, '#FF5555');
+                    this.triggerFlash(frontEnemy);
 
                     // 检查敌人是否死亡
                     if (frontEnemy.hp <= 0) {
                         this.showMessage(`击败了${frontEnemy.name}，获得${frontEnemy.exp}点经验`);
                         this.player.gainExp(frontEnemy.exp);
+                        this.addFloater(frontEnemy.x, frontEnemy.y, `EXP+${frontEnemy.exp}`, '#FFD700');
                         this.map.enemies.splice(this.map.enemies.indexOf(frontEnemy), 1);
                     }
 
@@ -190,15 +200,18 @@ class Game {
 
     battle(enemyIndex) {
         const enemy = this.map.enemies[enemyIndex];
-        // 玩家攻击敌人
+        // 玩家攻击敌人（在此完成减防计算，传递最终伤害给表现层）
         const playerDamage = Math.max(1, this.player.attack - enemy.defense);
         enemy.hp -= playerDamage;
         this.showMessage(`对${enemy.name}造成${playerDamage}点伤害`);
+        this.addFloater(enemy.x, enemy.y, `-${playerDamage}`, '#FF5555');
+        this.triggerFlash(enemy);
 
         // 检查敌人是否死亡
         if (enemy.hp <= 0) {
             this.showMessage(`击败了${enemy.name}，获得${enemy.exp}点经验`);
             this.player.gainExp(enemy.exp);
+            this.addFloater(enemy.x, enemy.y, `EXP+${enemy.exp}`, '#FFD700');
 
             // 如果击败的是魔王
             if (enemy.isBoss) {
@@ -214,10 +227,12 @@ class Game {
 
             this.map.enemies.splice(enemyIndex, 1);
         } else {
-            // 敌人反击
+            // 敌人反击（计算最终伤害后再交给takeDamage，不再二次扣防）
             const enemyDamage = Math.max(1, enemy.attack - this.player.defense);
             this.player.takeDamage(enemyDamage);
             this.showMessage(`${enemy.name}对你造成${enemyDamage}点伤害`);
+            this.addFloater(this.player.x, this.player.y, `-${enemyDamage}`, '#FF7777');
+            this.triggerFlash(this.player);
 
             // 检查玩家是否死亡
             if (this.player.hp <= 0) {
@@ -234,6 +249,9 @@ class Game {
         const item = this.map.items[itemIndex];
         const effectMessage = item.effect(this.player);
         this.showMessage(`获得了${item.name}${effectMessage ? '，' + effectMessage : ''}`);
+        if (effectMessage) {
+            this.addFloater(this.player.x, this.player.y, effectMessage, '#3CCB6C');
+        }
 
         // 如果拾取的是公主
         if (item.name === '公主') {
@@ -402,6 +420,16 @@ class Game {
             this.ctx.textBaseline = 'middle';
             this.ctx.fillText(enemy.name, enemy.x * this.tileSize + this.tileSize / 2, enemy.y * this.tileSize + this.tileSize / 2 - 8);
             this.ctx.fillText(`HP:${enemy.hp}`, enemy.x * this.tileSize + this.tileSize / 2, enemy.y * this.tileSize + this.tileSize / 2 + 8);
+
+            // 受击闪烁覆盖
+            if (enemy._flashFrames && enemy._flashFrames > 0) {
+                this.ctx.save();
+                this.ctx.globalAlpha = 0.6;
+                this.ctx.fillStyle = '#FFFFFF';
+                this.ctx.fillRect(enemy.x * this.tileSize, enemy.y * this.tileSize, this.tileSize, this.tileSize);
+                this.ctx.restore();
+                enemy._flashFrames--;
+            }
         });
 
         // 绘制玩家
@@ -409,6 +437,16 @@ class Game {
         this.ctx.fillRect(this.player.x * this.tileSize, this.player.y * this.tileSize, this.tileSize, this.tileSize);
         this.ctx.strokeStyle = '#000';
         this.ctx.strokeRect(this.player.x * this.tileSize, this.player.y * this.tileSize, this.tileSize, this.tileSize);
+
+        // 玩家受击闪烁
+        if (this.player._flashFrames && this.player._flashFrames > 0) {
+            this.ctx.save();
+            this.ctx.globalAlpha = 0.6;
+            this.ctx.fillStyle = '#FFFFFF';
+            this.ctx.fillRect(this.player.x * this.tileSize, this.player.y * this.tileSize, this.tileSize, this.tileSize);
+            this.ctx.restore();
+            this.player._flashFrames--;
+        }
 
         // 绘制玩家方向
         this.ctx.fillStyle = '#fff';
@@ -428,6 +466,9 @@ class Game {
                 break;
         }
         this.ctx.fillText(directionSymbol, this.player.x * this.tileSize + this.tileSize / 2, this.player.y * this.tileSize + this.tileSize / 2);
+
+        // 绘制与更新飘字特效
+        this.renderEffects();
     }
 
     gameLoop() {
@@ -445,9 +486,72 @@ class Game {
             
             // 检查是否与玩家相邻
             if (Math.abs(enemy.x - this.player.x) + Math.abs(enemy.y - this.player.y) === 1) {
-                const damage = enemy.attack(this.player);
-                this.log(`敌人 ${enemy.name} 对你造成了 ${damage} 点伤害!`);
+                const damage = Math.max(1, enemy.attack - this.player.defense);
+                this.player.takeDamage(damage);
+                this.showMessage(`敌人${enemy.name}对你造成了${damage}点伤害!`);
             }
         });
+    }
+
+    // 敌人回合（用于回合制：玩家行动后调用）
+    enemyTurn() {
+        if (this.isGameOver) return;
+        this.map.enemies.forEach(enemy => {
+            enemy.move(this.map, this.player);
+            if (Math.abs(enemy.x - this.player.x) + Math.abs(enemy.y - this.player.y) === 1) {
+                const damage = Math.max(1, enemy.attack - this.player.defense);
+                this.player.takeDamage(damage);
+                this.showMessage(`${enemy.name}对你造成${damage}点伤害`);
+                this.addFloater(this.player.x, this.player.y, `-${damage}`, '#FF7777');
+                this.triggerFlash(this.player);
+                if (this.player.hp <= 0) {
+                    this.gameOver(false);
+                }
+            }
+        });
+    }
+
+    // 添加飘字
+    addFloater(x, y, text, color) {
+        this.effects.push({
+            x: x * this.tileSize + this.tileSize / 2,
+            y: y * this.tileSize + this.tileSize / 2,
+            text,
+            color: color || '#FFFFFF',
+            alpha: 1,
+            vy: -0.6,
+            life: 50
+        });
+    }
+
+    // 触发受击闪烁
+    triggerFlash(entity) {
+        if (entity) {
+            entity._flashFrames = 8; // 约 ~8 帧闪白
+        }
+    }
+
+    // 渲染与更新飘字
+    renderEffects() {
+        const next = [];
+        for (let i = 0; i < this.effects.length; i++) {
+            const fx = this.effects[i];
+            // 绘制
+            this.ctx.save();
+            this.ctx.globalAlpha = Math.max(0, fx.alpha);
+            this.ctx.fillStyle = fx.color;
+            this.ctx.font = '16px Arial';
+            this.ctx.textAlign = 'center';
+            this.ctx.textBaseline = 'middle';
+            this.ctx.fillText(fx.text, fx.x, fx.y);
+            this.ctx.restore();
+
+            // 更新
+            fx.y += fx.vy;
+            fx.alpha -= 0.02;
+            fx.life--;
+            if (fx.life > 0 && fx.alpha > 0) next.push(fx);
+        }
+        this.effects = next;
     }
 }
